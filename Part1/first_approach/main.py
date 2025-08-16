@@ -98,6 +98,11 @@ def create_or_update_city(city: CitySchema):
         db_city = db.query(City).filter(City.name == city.name).first()
         if db_city:
             db_city.country_code = city.country_code
+            # Cache Coherency (update redis if it exists)
+            if redis_client.exists(city.name):
+                redis_client.setex(city.name, 600, city.country_code)
+                # Update access time
+                redis_client.zadd("cache_access_times", {city.name: time.time()})
         else:
             db_city = City(name=city.name, country_code=city.country_code)
             db.add(db_city)
@@ -116,13 +121,26 @@ def get_country_code(city_name: str):
     if country_code:
         cache_hits += 1
         cache_status = "HIT"
+        # Update access time for LRU
+        redis_client.zadd("cache_access_times", {city_name: time.time()})
     else:
         with SessionLocal() as db:
             db_city = db.query(City).filter(City.name == city_name).first()
             if not db_city:
                 raise HTTPException(status_code=404, detail="City not found")
             country_code = db_city.country_code
+            
+            # Before adding new item, check cache size (For Holding 10th recent requests)
+            cache_size = redis_client.zcard("cache_access_times")
+            if cache_size >= 10:
+                # Remove oldest item
+                oldest_items = redis_client.zrange("cache_access_times", 0, 0)
+                if oldest_items:
+                    oldest_city = oldest_items[0]
+                    redis_client.delete(oldest_city)
+                    redis_client.zrem("cache_access_times", oldest_city)
             redis_client.setex(city_name, 600, country_code)  # expire in 10 min
+            redis_client.zadd("cache_access_times", {city_name: time.time()})
             cache_status = "MISS"
     
     # Publish Kafka log
@@ -137,7 +155,12 @@ def get_country_code(city_name: str):
     except Exception as e:
         print(f"Failed to send Kafka message: {e}")
     
-    return {"city": city_name, "country_code": country_code}
+    return {
+        "city": city_name,
+        "country_code": country_code,
+        "cache_status": cache_status,
+        "response_time": time.time() - start_time
+    }
 
 @app.get("/stats")
 def get_stats():

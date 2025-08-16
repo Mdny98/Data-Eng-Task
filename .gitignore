@@ -5,3 +5,5 @@ env
 /env
 ./Attachment/REF_SMS/REF_CBS_SMS2.csv
 /Attachment/REF_SMS/REF_CBS_SMS2.csv
+__pycache__/
+*.pyc
