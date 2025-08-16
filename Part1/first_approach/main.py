@@ -56,7 +56,7 @@ def create_kafka_producer():
                 max_block_ms=30000,
                 value_serializer=lambda v: json.dumps(v).encode('utf-8')
             )
-            # Test producer by getting metadata
+            
             return producer
         except Exception as e:
             print(f"Failed to create Kafka producer (attempt {i+1}): {e}")
