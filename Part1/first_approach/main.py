@@ -169,3 +169,7 @@ def get_stats():
         "cache_hits": cache_hits,
         "cache_hit_percentage": round((cache_hits / total_requests) * 100, 2) if total_requests > 0 else 0
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
