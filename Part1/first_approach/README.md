@@ -115,7 +115,7 @@ Failed: 0
 
 ## API Endpoints Explanation
 
-### 1. Create/Update City (Step 2)
+### 1. Create/Update City
 ```http
 POST /city
 Content-Type: application/json
@@ -127,22 +127,21 @@ Content-Type: application/json
 ```
 
 
-### 3. Get City Country Code (Steps 3, 4, 5)
+### 2. Get City Country Code
 ```http
 GET /cities/{city_name}
 ```
-**This endpoint implements the complete caching and logging flow:**
-
-1. **Check Redis Cache**: Searches for city in Redis
-
-## View Kafka Logs:
-
-``` bash
-docker exec -it kafka_broker bash
-kafka-console-consumer.sh \
-  --bootstrap-server localhost:9092 \
-  --topic city_requests \
-  --from-beginning
+### 3. Check Connection Health
+```http
+GET /health
+```
+### 4. Root
+```http
+GET /
+```
+### 5. Statistics
+```http
+GET /stats
 ```
 
 ## View Kafka Logs:
