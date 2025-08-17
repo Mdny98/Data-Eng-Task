@@ -1,15 +1,33 @@
-# City Country Code API - Complete Setup Guide
+# City Country Code API
 
-This guide walks you through setting up a complete Data Eng application with FastAPI, PostgreSQL, Redis, and Kafka.
+A high-performance data engineering application that provides city-to-country code mapping with caching and request logging capabilities.
 
-## Architecture Overview
+## System Architecture
 
 The application consists of:
-- **FastAPI**: REST API for city/country code management
+- **FastAPI**: REST API server for city/country code operations
 - **PostgreSQL**: Primary database for persistent storage
 - **Redis**: LRU cache (max 10 items, 10-minute TTL)
-- **Apache Kafka**: Event logging for all API requests
-- **Docker**: Containerization for all services
+- **Apache Kafka**: Request logging and analytics
+- **Docker**: Service containerization and orchestration
+
+## Core Features
+
+**Data Management**
+- Create/update city records with country codes
+- Retrieve country codes by city name
+- Automatic cache management with LRU eviction
+
+**Performance Optimization**  
+- Redis caching for frequently requested cities
+- Cache hit/miss tracking and statistics
+- Response time monitoring
+
+**Observability**
+- All requests logged to Kafka with metadata
+- Cache hit percentage tracking
+- Health monitoring endpoints
+
 
 ## Prerequisites
 
@@ -18,9 +36,9 @@ Make sure you have installed:
 - Docker and Docker Compose
 - pip (Python package manager)
 
-## Step-by-Step Setup
+## Quick Start
 
-### Step 1: Project Structure Setup
+### Project Structure Setup
 
 Create/Clone the project directory and files:
 
@@ -36,33 +54,17 @@ project/
 └── requirements.txt
 ```
 
-### Step 2: Install Python Dependencies
-
-```bash
-# Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Step 3: Start Infrastructure Services
+### Start Infrastructure Services
 
 Start PostgreSQL, Redis, and Kafka using Docker Compose:
 
 ```bash
 # Start all services in background
 docker-compose up -d
-
-# Check if services are running
-docker-compose ps
-
 ```
+‍*‍*‍Wait 30-60 seconds** for Kafka to fully initialize before proceeding.
 
-**Wait 30-60 seconds** for Kafka to fully initialize before proceeding.
-
-### Step 4: Initialize Kafka Topic
+### Initialize Kafka Topic
 
 Create the required Kafka topic for logging inside the Kafka Container:
 
@@ -76,7 +78,7 @@ $ kafka-topics.sh --create \
 $ exit
 ```
 
-### Step 5: Start the FastAPI Application
+### Start the FastAPI Application
 Run one of these options (Do not shoot it down for the next steps) 
 ```bash
 # Start the API server
@@ -89,7 +91,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 The API will be available at: http://localhost:8000
 - API documentation: http://localhost:8000/docs 
 
-### Step 6: Load City Data
+### Load City Data
 
 Load initial city data into the database:
 
@@ -118,14 +120,11 @@ Failed: 0
 ### 1. Create/Update City
 ```http
 POST /city
-Content-Type: application/json
-
 {
   "city": "London",
   "country_code": "GB"
 }
 ```
-
 
 ### 2. Get City Country Code
 ```http
@@ -139,12 +138,23 @@ GET /health
 ```http
 GET /
 ```
-### 5. Statistics
+### 5. View Statistics
 ```http
 GET /stats
 ```
 
-## View Kafka Logs:
+Access interactive API documentation at `http://localhost:8000/docs`
+
+## Cache Behavior
+
+- **Capacity**: 10 most recent requests
+- **TTL**: 10 minutes per entry
+- **Strategy**: LRU (Least Recently Used) eviction
+- **Performance**: Sub-millisecond response times for cached data
+
+
+## Monitoring
+View real-time request logs via Kafka:
 
 ``` bash
 docker exec -it kafka_broker bash
@@ -153,3 +163,4 @@ kafka-console-consumer.sh \
   --topic city_requests \
   --from-beginning
 ```
+Each log entry includes response time, cache status, and hit rate statistics.
