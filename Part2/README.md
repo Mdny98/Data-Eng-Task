@@ -2,6 +2,30 @@
 
 A real-time data analytics solution using Apache Spark Structured Streaming to process SMS transaction data and generate comprehensive reports stored in MinIO.
 
+
+
+### some notes:
+
+**Apache Spark Structured Streaming:**
+Micro-batch Processing
+Incremental Processing : (trigger)
+Unified API
+Automatic Optimization: (Catalyst optimizer)
+
+
+Key Concepts:
+- Watermarking: Handles late-arriving data (wait time)
+- Windowing: Groups data into time-based windows (like our 15-minute intervals)
+- Checkpointing: Saves processing state to recover from failures
+- Output Modes: Complete, Append, or Update 
+
+### MinIO Object Storage:
+MinIO is a high-performance, S3-compatible object storage system designed for cloud-native applications and distributed systems.
+S3 Compatibility: Uses the same API as Amazon S3, making it interoperable with many tools (means a storage system uses the Amazon S3 API (Simple Storage Service API) to interact with applications and other systems) 
+Distributed Architecture: Can scale across multiple servers and disks
+Erasure Coding: Provides data protection and redundancy without full replication
+RESTful API: Simple HTTP-based API for storing and retrieving objects
+
 ## Features
 
 - **Real-time Processing**: Continuous data processing using Spark Structured Streaming
