@@ -4,11 +4,11 @@ env
 .env
 /env
 ./Attachment/REF_SMS/REF_CBS_SMS2.csv
+/Attachment/REF_SMS/REF_CBS_SMS2.csv
 Attachments
 ./Attachments
 /Attachments
 .Attachments
-/Attachment/REF_SMS/REF_CBS_SMS2.csv
 __pycache__/
 *.pyc
 *REF_CBS_SMS2.csv

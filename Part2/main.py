@@ -4,7 +4,6 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import *
 import pandas as pd
 import os
-from pyspark.sql.functions import col, sum, to_date
 
 class SparkStreamingAnalytics:
     def __init__(self, minio_endpoint="localhost:9000", minio_access_key="minioadmin", minio_secret_key="minioadmin"):
@@ -22,23 +21,14 @@ class SparkStreamingAnalytics:
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
             .getOrCreate()
         
-
-        
         self.spark.sparkContext.setLogLevel("WARN")
         
         # MinIO bucket configuration
         self.output_bucket = "s3a://analytics-output"
         
     def load_reference_data(self, ref_file_path="~/projects/Proj_Moh/Attachments/REF_SMS/Ref.xlsx"):
-        """
-        Load reference data for PayType mapping
+        # Load reference data for PayType mapping
         
-        Args:
-            ref_file_path: Path to reference Excel file
-            
-        Returns:
-            DataFrame: Reference data as Spark DataFrame
-        """
         try:
             # Load Excel file using pandas first, then convert to Spark DataFrame
             ref_pandas = pd.read_excel(ref_file_path)
@@ -104,27 +94,8 @@ class SparkStreamingAnalytics:
 
     # def generate_daily_revenue_report(self, streaming_df):
     def generate_daily_revenue_report(self,df):
-        # Report 1: Daily Revenue (in Toman)
-    
+        # Report 1: Daily Revenue (in Toman)    
 
-        # Method 1: Using Streaming CSV read/write
-        # daily_revenue = streaming_df \
-        #     .withColumn("date", to_date(col("timestamp"))) \
-        #     .groupBy("date") \
-        #     .agg(sum("revenue_toman").alias("total_revenue")) \
-        #     .orderBy("date")
-        
-        # # Write to MinIO
-        # query = daily_revenue.writeStream \
-        #     .outputMode("complete") \
-        #     .format("csv") \
-        #     .option("header", "true") \
-        #     .option("path", f"{self.output_bucket}/daily_revenue") \
-        #     .option("checkpointLocation", "/tmp/checkpoint_daily") \
-        #     .trigger(processingTime='30 seconds') \
-        #     .start()
-
-        # Method 2: Using Static CSV read/write 
         # Compute daily revenue
         daily_revenue = df \
             .withColumn("date", to_date(col("timestamp"))) \
@@ -137,6 +108,8 @@ class SparkStreamingAnalytics:
             .mode("overwrite") \
             .option("header", "true") \
             .csv("/home/mohammad/projects/Proj_Moh/outputs/daily_revenue")
+        
+        daily_revenue.show(10)
 
         # Save the result as CSV (in MinIO)
         output_path = f"{self.output_bucket}/daily_revenue"
@@ -148,188 +121,161 @@ class SparkStreamingAnalytics:
         print(f"Daily Revenue Report saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/daily_revenue")
         return query
 
-    def generate_15min_revenue_by_paytype(self, streaming_df, ref_df):
-        """
-        Report 2: 15-Minute Interval Revenue by Pay Type (in Toman)
-        Calculate revenue in 15-minute intervals for each paytype
-        
-        """
-        # Create 15-minute windows
-        windowed_df = streaming_df \
-            .withWatermark("timestamp", "1 minute") \
+    def generate_15min_revenue_by_paytype(self, df):
+
+        # Truncate timestamp to 15-minute intervals
+        revenue_15min = df \
+            .withWatermark("timestamp", "1 day") \
             .groupBy(
-                window(col("timestamp"), "15 minutes").alias("time_window"),
+                window(col("timestamp"), "15 minutes"), 
                 col("PAYTYPE_515")
             ) \
             .agg(sum("revenue_toman").alias("revenue")) \
-            .withColumn("RECORD_DATE", col("time_window.start")) \
-            .select("RECORD_DATE", "PAYTYPE_515", "revenue") \
-            .orderBy("RECORD_DATE", "PAYTYPE_515")
-        
-        # Write to MinIO
-        query = windowed_df.writeStream \
-            .outputMode("append") \
-            .format("csv") \
+            .withColumn("interval_start", col("window.start")) \
+            .drop("window") \
+            .orderBy("interval_start", "PAYTYPE_515")
+
+        revenue_15min.show(10)
+        # Save to local filesystem
+        revenue_15min.coalesce(1).write \
+            .mode("overwrite") \
             .option("header", "true") \
-            .option("path", f"{self.output_bucket}/15min_revenue_by_paytype") \
-            .option("checkpointLocation", "/tmp/checkpoint_15min") \
-            .trigger(processingTime='30 seconds') \
-            .start()
-        
-    
-        print("15-Minute Revenue by PayType streaming query started...")
+            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_15min_by_paytype")
+
+        # Save to MinIO
+        output_path = f"{self.output_bucket}/revenue_15min_by_paytype"
+        query = revenue_15min.coalesce(1).write \
+            .mode("overwrite") \
+            .option("header", "true") \
+            .csv(output_path)
+
+        print(f"15-Minute Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_15min_by_paytype")
         return query
 
+
+
     def generate_max_min_revenue_report(self, streaming_df):
-        """
-        Report 3: Max and Min Revenue (in Toman) in 15-Minute Intervals by Pay Type
-        Find the maximum and minimum revenue per 15-minute interval for each paytype
-        
-        Args:
-            streaming_df: Input streaming DataFrame
-        """
-        max_min_revenue = streaming_df \
-            .withWatermark("timestamp", "1 minute") \
+
+        # Group into 15-minute intervals and calculate min/max revenue per paytype
+        revenue_15min_minmax = streaming_df \
+            .withWatermark("timestamp", "1 day") \
             .groupBy(
-                window(col("timestamp"), "15 minutes").alias("time_window"),
+                window(col("timestamp"), "15 minutes"),
                 col("PAYTYPE_515")
             ) \
             .agg(
-                max("revenue_toman").alias("max_revenue"),
                 min("revenue_toman").alias("min_revenue"),
-                sum("revenue_toman").alias("total_revenue")
+                max("revenue_toman").alias("max_revenue")
             ) \
-            .withColumn("RECORD_DATE", col("time_window.start")) \
-            .select("RECORD_DATE", "PAYTYPE_515", "max_revenue", "min_revenue", "total_revenue") \
-            .orderBy("RECORD_DATE", "PAYTYPE_515")
-        
-        # Write to MinIO
-        query = max_min_revenue.writeStream \
-            .outputMode("append") \
-            .format("csv") \
+            .withColumn("interval_start", col("window.start")) \
+            .drop("window") \
+            .orderBy("interval_start", "PAYTYPE_515")
+
+        # Save to local filesystem
+        revenue_15min_minmax.coalesce(1).write \
+            .mode("overwrite") \
             .option("header", "true") \
-            .option("path", f"{self.output_bucket}/max_min_revenue") \
-            .option("checkpointLocation", "/tmp/checkpoint_maxmin") \
-            .trigger(processingTime='30 seconds') \
-            .start()
-        
-        print("Max/Min Revenue Report streaming query started...")
+            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_15min_minmax_by_paytype")
+
+        revenue_15min_minmax.show(20)
+        # Save to MinIO
+        output_path = f"{self.output_bucket}/revenue_15min_minmax_by_paytype"
+        query = revenue_15min_minmax.coalesce(1).write \
+            .mode("overwrite") \
+            .option("header", "true") \
+            .csv(output_path)
+
+        print(f"15-Minute Min/Max Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_15min_minmax_by_paytype")
         return query
 
     def generate_revenue_count_with_mapping(self, streaming_df, ref_df):
-        """
-        Report 4: Revenue and Record Count in 15-Minute Intervals by Pay Type (in Toman)
-        Calculate both the revenue and the number of records in each 15-minute interval
-        for each paytype with meaningful status mapping
-        
-        Args:
-            streaming_df: Input streaming DataFrame
-            ref_df: Reference DataFrame for PayType mapping
-        """
-        # First create the windowed aggregation
-        windowed_agg = streaming_df \
-            .withWatermark("timestamp", "1 minute") \
+
+
+      # Join reference mapping (Prepaid/Postpaid)
+        df_with_ref = streaming_df.join(
+            ref_df,
+            streaming_df["PAYTYPE_515"] == ref_df["PayType"],
+            how="left"
+        )
+
+        # Group into 15-minute intervals, compute record count and revenue
+        revenue_count_15min = df_with_ref \
+            .withWatermark("timestamp", "1 day") \
             .groupBy(
-                window(col("timestamp"), "15 minutes").alias("time_window"),
-                col("PAYTYPE_515")
+                window(col("timestamp"), "15 minutes"),
+                col("value")  # mapped PayType name (Prepaid/Postpaid)
             ) \
             .agg(
-                count("*").alias("Record_Count"),
-                sum("revenue_toman").alias("Revenue")
+                count("*").alias("record_count"),
+                sum("revenue_toman").alias("revenue")
             ) \
-            .withColumn("RECORD_DATE", col("time_window.start")) \
-            .select("RECORD_DATE", "PAYTYPE_515", "Record_Count", "Revenue")
+            .withColumn("interval_start", col("window.start")) \
+            .drop("window") \
+            .orderBy("interval_start", "value")
         
-        # Join with reference data to get meaningful PayType names
-        # Note: In streaming, we need to broadcast the reference data
-        ref_broadcast = broadcast(ref_df)
-        
-        result_df = windowed_agg \
-            .join(ref_broadcast, "PayType", "left") \
-            .select(
-                col("RECORD_DATE"),
-                coalesce(col("value"), col("PayType").cast("string")).alias("Pay_Type"),
-                col("Record_Count"),
-                col("Revenue")
-            ) \
-            .orderBy("RECORD_DATE", "Pay_Type")
-        
-        # Write to MinIO
-        query = result_df.writeStream \
-            .outputMode("append") \
-            .format("csv") \
+        revenue_count_15min.show(10)
+
+        # Save to local filesystem
+        revenue_count_15min.coalesce(1).write \
+            .mode("overwrite") \
             .option("header", "true") \
-            .option("path", f"{self.output_bucket}/revenue_count_with_mapping") \
-            .option("checkpointLocation", "/tmp/checkpoint_mapping") \
-            .trigger(processingTime='30 seconds') \
-            .start()
-        
-        print("Revenue and Count with Mapping streaming query started...")
+            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_count_15min_by_paytype")
+
+        # Save to MinIO
+        output_path = f"{self.output_bucket}/revenue_count_15min_by_paytype"
+        query = revenue_count_15min.coalesce(1).write \
+            .mode("overwrite") \
+            .option("header", "true") \
+            .csv(output_path)
+
+        print(f"15-Minute Revenue + Count by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_count_15min_by_paytype")
         return query
 
     def run_all_analytics(self):
-        """
-        Main method to run all analytics reports
-        """
+        
+        # Main method to run all analytics reports
+        
         print("Starting Spark Structured Streaming Analytics...")
         
         try:
-            # Load reference data
+        
+            # Load reference data => For the PayType values
             ref_df = self.load_reference_data()
             
-            # Setup streaming source
             streaming_df = self.setup_streaming_source()
             
             print("Streaming DataFrame schema:")
             streaming_df.printSchema()
             
-            # Start all streaming queries
-            queries = []
-            
             print('Query 1 is starting:')
             # Report 1: Daily Revenue
-            query1 = self.generate_daily_revenue_report(streaming_df)
-            # query1 = self.generate_daily_revenue_report(streaming_df)
-            queries.append(query1)
+            self.generate_daily_revenue_report(streaming_df)
             
             print('Query 2 is starting:')
             # Report 2: 15-Minute Revenue by PayType
-            query2 = self.generate_15min_revenue_by_paytype(streaming_df, ref_df)
-            queries.append(query2)
+            self.generate_15min_revenue_by_paytype(streaming_df)
             
             print('Query 3 is starting:')
             # Report 3: Max/Min Revenue
-            query3 = self.generate_max_min_revenue_report(streaming_df)
-            queries.append(query3)
+            self.generate_max_min_revenue_report(streaming_df)
             
             print('Query 4 is starting:')
             # Report 4: Revenue and Count with Mapping
-            query4 = self.generate_revenue_count_with_mapping(streaming_df, ref_df)
-            queries.append(query4)
+            self.generate_revenue_count_with_mapping(streaming_df, ref_df)
             
             print("All streaming queries started successfully!")
-            print("Data will be written to MinIO bucket: analytics-output")
+            print("Data is written to MinIO bucket: analytics-output")
             print("\nPress Ctrl+C to stop all queries...")
             
-            # Wait for all queries to finish
-            for query in queries:
-                query.awaitTermination()
                 
         except Exception as e:
             print(f"Error running analytics: {e}")
         finally:
             self.spark.stop()
 
-    def stop_all_queries(self):
-        """
-        Stop all active streaming queries
-        """
-        for query in self.spark.streams.active:
-            query.stop()
-        print("All streaming queries stopped.")
 
-# Usage Example
 if __name__ == "__main__":
+
     # Initialize the analytics engine
     analytics = SparkStreamingAnalytics(
         minio_endpoint="localhost:9000",  
@@ -337,5 +283,4 @@ if __name__ == "__main__":
         minio_secret_key="minioadmin"    
     )
     
-    # Run all analytics
     analytics.run_all_analytics()
