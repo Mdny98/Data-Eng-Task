@@ -62,12 +62,12 @@ REF_SMS/
 ### Run Analytics
 ```bash
 # Method 1: Direct execution
-python spark_streaming_analytics.py
+python main.py
 
 # Method 2: Using spark-submit (recommended)
 spark-submit \
   --packages org.apache.hadoop:hadoop-aws:3.3.4 \
-  spark_streaming_analytics.py
+  main.py
 ```
 
 ## Generated Reports
