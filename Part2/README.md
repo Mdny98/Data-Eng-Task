@@ -93,7 +93,6 @@ RECORD_DATE,PayType,Debit_amount_42
 PayType | value
 0       | Prepaid
 1       | Postpaid
-2       | Corporate
 ```
 
 ## Configuration
