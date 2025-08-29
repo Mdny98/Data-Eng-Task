@@ -26,7 +26,7 @@ class SparkStreamingAnalytics:
         # MinIO bucket configuration
         self.output_bucket = "s3a://analytics-output"
         
-    def load_reference_data(self, ref_file_path="~/projects/Proj_Moh/Attachments/REF_SMS/Ref.xlsx"):
+    def load_reference_data(self, ref_file_path="~/projects/Mohaymen_Task_New/Attachments/REF_SMS/Ref.xlsx"):
         # Load reference data for PayType mapping
         
         try:
@@ -48,7 +48,7 @@ class SparkStreamingAnalytics:
             ])
             return self.spark.createDataFrame(fallback_data, schema)
 
-    def setup_streaming_source(self, data_path="~/projects/Proj_Moh/Attachments/REF_SMS/REF_CBS_SMS2.csv"):
+    def setup_streaming_source(self, data_path="~/projects/Mohaymen_Task_New/Attachments/REF_SMS/REF_CBS_SMS2.csv"):
        
         # Setup streaming source from CSV files
        
@@ -107,7 +107,7 @@ class SparkStreamingAnalytics:
         daily_revenue.coalesce(1).write \
             .mode("overwrite") \
             .option("header", "true") \
-            .csv("/home/mohammad/projects/Proj_Moh/outputs/daily_revenue")
+            .csv("/home/mohammad/projects/Mohaymen_Task_New/outputs/daily_revenue")
         
         daily_revenue.show(10)
 
@@ -118,7 +118,7 @@ class SparkStreamingAnalytics:
             .option("header", "true") \
             .csv(output_path)
         
-        print(f"Daily Revenue Report saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/daily_revenue")
+        print(f"Daily Revenue Report saved to both {output_path} and /home/mohammad/projects/Mohaymen_Task_New/outputs/daily_revenue")
         return query
 
     def generate_15min_revenue_by_paytype(self, df):
@@ -140,7 +140,7 @@ class SparkStreamingAnalytics:
         revenue_15min.coalesce(1).write \
             .mode("overwrite") \
             .option("header", "true") \
-            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_15min_by_paytype")
+            .csv("/home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_15min_by_paytype")
 
         # Save to MinIO
         output_path = f"{self.output_bucket}/revenue_15min_by_paytype"
@@ -149,7 +149,7 @@ class SparkStreamingAnalytics:
             .option("header", "true") \
             .csv(output_path)
 
-        print(f"15-Minute Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_15min_by_paytype")
+        print(f"15-Minute Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_15min_by_paytype")
         return query
 
 
@@ -175,7 +175,7 @@ class SparkStreamingAnalytics:
         revenue_15min_minmax.coalesce(1).write \
             .mode("overwrite") \
             .option("header", "true") \
-            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_15min_minmax_by_paytype")
+            .csv("/home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_15min_minmax_by_paytype")
 
         revenue_15min_minmax.show(20)
         # Save to MinIO
@@ -185,7 +185,7 @@ class SparkStreamingAnalytics:
             .option("header", "true") \
             .csv(output_path)
 
-        print(f"15-Minute Min/Max Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_15min_minmax_by_paytype")
+        print(f"15-Minute Min/Max Revenue by PayType saved to both {output_path} and /home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_15min_minmax_by_paytype")
         return query
 
     def generate_revenue_count_with_mapping(self, streaming_df, ref_df):
@@ -219,7 +219,7 @@ class SparkStreamingAnalytics:
         revenue_count_15min.coalesce(1).write \
             .mode("overwrite") \
             .option("header", "true") \
-            .csv("/home/mohammad/projects/Proj_Moh/outputs/revenue_count_15min_by_paytype")
+            .csv("/home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_count_15min_by_paytype")
 
         # Save to MinIO
         output_path = f"{self.output_bucket}/revenue_count_15min_by_paytype"
@@ -228,7 +228,7 @@ class SparkStreamingAnalytics:
             .option("header", "true") \
             .csv(output_path)
 
-        print(f"15-Minute Revenue + Count by PayType saved to both {output_path} and /home/mohammad/projects/Proj_Moh/outputs/revenue_count_15min_by_paytype")
+        print(f"15-Minute Revenue + Count by PayType saved to both {output_path} and /home/mohammad/projects/Mohaymen_Task_New/outputs/revenue_count_15min_by_paytype")
         return query
 
     def run_all_analytics(self):

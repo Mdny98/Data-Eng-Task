@@ -3,6 +3,8 @@ DE_Task.pdf
 env
 .env
 /env
+/venv
+.venv
 ./Attachment/REF_SMS/REF_CBS_SMS2.csv
 /Attachment/REF_SMS/REF_CBS_SMS2.csv
 Attachments
