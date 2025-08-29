@@ -65,9 +65,8 @@ REF_SMS/
 python main.py
 
 # Method 2: Using spark-submit (recommended)
-spark-submit \
-  --packages org.apache.hadoop:hadoop-aws:3.3.4 \
-  main.py
+./../spark-3.4.0-bin-hadoop3/bin/spark-submit   --jars ./../spark-3.4.0-bin-hadoop3/jars/hadoop-aws-3.3.4.jar,./../spark-3.4.0-bin-hadoop3/jars/aws-java-sdk-bundle-1.12.353.jar   Part2/main.py 
+
 ```
 
 ## Generated Reports
