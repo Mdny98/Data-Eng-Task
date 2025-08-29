@@ -30,7 +30,7 @@ def load_cities_data():
     successful_inserts = 0
     
     # Process all CSV files in the Attachments/Cities directory
-    cities_dir = "./Attachments/Cities"
+    cities_dir = "../Attachments/Cities"
     if not os.path.exists(cities_dir):
         print(f"Directory {cities_dir} does not exist!")
         return

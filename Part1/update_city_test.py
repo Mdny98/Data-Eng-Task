@@ -2,8 +2,8 @@ import requests
 
 API_URL = "http://localhost:8000/city"
 
-city_name = "Mashad"
-country_code = "TEh"  
+city_name = "Austin"
+country_code = "AUS"  
 
 payload = {
     "name": city_name.strip(),

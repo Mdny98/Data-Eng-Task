@@ -173,3 +173,13 @@ def get_stats():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+# Check Kafka Producer
+
+# docker exec -it kafka_broker bash
+
+# kafka-console-consumer.sh \
+#   --bootstrap-server localhost:9092 \
+#   --topic city_requests \
+#   --from-beginning
