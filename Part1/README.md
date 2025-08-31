@@ -116,6 +116,15 @@ Failed: 0
 ```
 
 ## API Endpoints Explanation
+```curl -X POST "http://localhost:8000/city" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Berlin", "country_code": "DE"}'
+````
+Option 1 :(get)
+```
+curl "http://localhost:8000/city/Berlin"
+```
+
 
 ### 1. Create/Update City
 ```http

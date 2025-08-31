@@ -127,6 +127,19 @@ def get_country_code(city_name: str):
         with SessionLocal() as db:
             db_city = db.query(City).filter(City.name == city_name).first()
             if not db_city:
+                response_time = time.time() - start_time
+                cache_status = "MISS"
+
+                try:
+                    producer.send(KAFKA_TOPIC, {
+                        "city": city_name,
+                        "response_time": response_time,
+                        "cache_status": cache_status,
+                        "cache_hit_percentage": round((cache_hits / total_requests) * 100, 2)
+                    })
+                except Exception as e:
+                    print(f"Failed to send Kafka message: {e}")
+                
                 raise HTTPException(status_code=404, detail="City not found")
             country_code = db_city.country_code
             
@@ -142,9 +155,11 @@ def get_country_code(city_name: str):
             redis_client.setex(city_name, 600, country_code)  # expire in 10 min
             redis_client.zadd("cache_access_times", {city_name: time.time()})
             cache_status = "MISS"
+            print('########',db_city)
     
     # Publish Kafka log
     response_time = time.time() - start_time
+    print('#########',city_name)
     try:
         producer.send(KAFKA_TOPIC, {
             "city": city_name,
@@ -177,9 +192,12 @@ if __name__ == "__main__":
 
 # Check Kafka Producer
 
-# docker exec -it kafka_broker bash
+'''
+sudo docker exec -it kafka_broker bash
 
-# kafka-console-consumer.sh \
-#   --bootstrap-server localhost:9092 \
-#   --topic city_requests \
-#   --from-beginning
+kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 \
+  --topic city_requests \
+  --from-beginning
+
+'''

@@ -7,6 +7,7 @@ import time
 API_URL = "http://localhost:8000/city"
 
 def wait_for_api():
+    
     """Wait for the API to be available"""
     max_retries = 30
     for i in range(max_retries):
