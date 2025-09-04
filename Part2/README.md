@@ -48,7 +48,7 @@ RESTful API: Simple HTTP-based API for storing and retrieving objects
 pip install pyspark pandas openpyxl
 
 # Start MinIO server
-./minio server ~/minio-data --console-address ":9001"
+./minio server ~/minio-data --console-address ":9000"
 ```
 
 ### Data Setup
