@@ -10,7 +10,7 @@ A real-time data analytics solution using Apache Spark Structured Streaming to p
 Micro-batch Processing
 Incremental Processing : (trigger)
 Unified API
-Automatic Optimization: (Catalyst optimizer)
+
 
 
 Key Concepts:
